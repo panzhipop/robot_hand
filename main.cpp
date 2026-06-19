@@ -110,15 +110,15 @@ int main() {
             // }
 
             if (myHand.getFingerConfig(1, cfg) && cfg.is_ready) {
-                int32_t target = mapVal(receivedData.fingers[1 - 1], 0, 4095, cfg.active_min, cfg.active_max);
+                int32_t target = mapVal(receivedData.fingers[1 - 1], 0, 4095, cfg.active_max, cfg.active_min);
                 myHand.setFingerPosition(1, target);
             }  
             if (myHand.getFingerConfig(2, cfg) && cfg.is_ready) {
-                int32_t target = mapVal(receivedData.fingers[2 - 1], 2833, 4095, cfg.active_min, cfg.active_max);
+                int32_t target = mapVal(receivedData.fingers[2 - 1], 2833, 4095, cfg.active_max, cfg.active_min);
                 myHand.setFingerPosition(2, target);
             }  
             if (myHand.getFingerConfig(3, cfg) && cfg.is_ready) {
-                int32_t target = mapVal(receivedData.fingers[3 - 1], 0, 3000, cfg.active_min, cfg.active_max);
+                int32_t target = mapVal(receivedData.fingers[3 - 1], 0, 3000, cfg.active_max, cfg.active_min);
                 myHand.setFingerPosition(3, target);
             }              
             if (myHand.getFingerConfig(4, cfg) && cfg.is_ready) {
