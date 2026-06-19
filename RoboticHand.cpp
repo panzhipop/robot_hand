@@ -38,6 +38,15 @@ bool RoboticHand::initialize() {
     return true;
 }
 
+bool RoboticHand::getFingerConfig(uint8_t id, FingerConfig& config) const {
+    auto it = fingers_.find(id);
+    if (it != fingers_.end()) {
+        config = it->second;
+        return true;
+    }
+    return false;
+}
+
 // 自動校正邏輯 (兼容手動與自動)
 void RoboticHand::autoCalibrate(int16_t calib_current_mA, int32_t open_target, int32_t close_target) {
     std::cout << "\n[啟動校正程序] 使用安全電流: " << calib_current_mA << "mA" << std::endl;

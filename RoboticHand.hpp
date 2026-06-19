@@ -48,7 +48,7 @@ public:
     void setAllFingersPosition(int32_t position);
 
     void printMotorStatus();
-
+    bool getFingerConfig(uint8_t id, FingerConfig& config) const;
 private:
     std::string port_name_;
     int baudrate_;

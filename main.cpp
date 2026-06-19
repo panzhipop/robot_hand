@@ -1,59 +1,109 @@
 #include <iostream>
 #include <unistd.h>
+#include <vector>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <algorithm>
 #include "RoboticHand.hpp"
 
+// 定義與 ESP32 完全相同的資料結構
+struct struct_message {
+    int fingers[5];
+};
+
+long mapVal(long x, long in_min, long in_max, long out_min, long out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 int main() {
-// 1. 混合模式的手指設定 (測試階段神器)
+    // ===== 1. 網路設定 (UDP Server) =====
+    int server_fd;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    int port = 12345; // 與 ESP32 相同的 Port
+
+    // 建立 UDP Socket
+    if ((server_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        std::cerr << "UDP Socket 建立失敗！" << std::endl;
+        return -1;
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY; // 監聽所有網路介面
+    address.sin_port = htons(port);
+
+    // 綁定 Port
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        std::cerr << "Socket 綁定 Port " << port << " 失敗！" << std::endl;
+        close(server_fd);
+        return -1;
+    }
+
+    // ===== 2. 機械手硬體設定 =====
     // 參數順序: { ID, 手動Min, 手動Max, 是否啟用自動校正 }
     std::vector<FingerConfig> hand_config = {
-        // true => 自動設定
         {1, 0, 4095, true}, 
         {2, 0, 4095, true}, 
         {3, 0, 4095, true}, 
         {4, 0, 4095, true}, 
-        {5, 0, 4095, true}, 
-        
-        // false => 人工設定
-        // {2, 0, 1800, false}, 
-        // {3, 0, 1600, false},     
-        // {4, 300, 2000, false},
-        // {5, 400, 2000, false}
+        {5, 0, 4095, true}
     };
 
-    // 2. 初始化機械手
+    // 初始化機械手 (U2D2 在樹莓派通常是 /dev/ttyUSB0)
     RoboticHand myHand("/dev/ttyUSB0", 57600, hand_config);
 
     if (!myHand.initialize()) {
+        std::cerr << "機器手初始化失敗，請檢查 U2D2 連線或執行 sudo chmod 666 /dev/ttyUSB0" << std::endl;
+        close(server_fd);
         return -1;
     }
 
-    // 3. 呼叫校正程序 
-    // (程式看到 ID 2, 3, 4, 5 會直接跳過，只會移動 ID 1 去找邊界)
+    // 3. 呼叫自動校正程序
+    // 注意：開啟此程序時，機器手會動，請確保周圍安全
     myHand.autoCalibrate(100, 0, 4095);
 
-    std::cout << "--- 開始正常運作 ---" << std::endl;
-    myHand.setAllFingersCurrent(100); 
+    std::cout << "\n--- 校正結束，開始進行 Wi-Fi 即時同步控制 ---" << std::endl;
+    std::cout << "正在監聽 Port " << port << " 接收手套數據..." << std::endl;
     
+    // 設定正常運作時的馬達安全電流限制 (可根據需求微調)
+    myHand.setAllFingersCurrent(100); 
+
+    struct_message receivedData;
+    FingerConfig cfg; // 用來暫存取出的手指設定
+
+    // ===== 4. 即時控制主迴圈 =====
+    while (true) {
+        ssize_t len = recvfrom(server_fd, &receivedData, sizeof(receivedData), 0, nullptr, nullptr);
+        
+        if (len == sizeof(struct_message)) {
+            // 列印收到的原始數據 debug
+            std::cout << "\r[收到數據] ID1: " << receivedData.fingers[0]
+                      << " | ID2: " << receivedData.fingers[1]
+                      << " | ID3: " << receivedData.fingers[2]
+                      << " | ID4: " << receivedData.fingers[3]
+                      << " | ID5: " << receivedData.fingers[4] << "    " << std::flush;
+
+            // 👉 更新：依照各手指的正反向，動態帶入 active_min 與 active_max
+            
+            // 手指 1、2、3 (反向映射：手套 0 -> 馬達 active_max, 手套 4095 -> 馬達 active_min)
+            for (uint8_t id = 1; id <= 3; ++id) {
+                if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
+                    int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_max, cfg.active_min);
+                    myHand.setFingerPosition(id, target);
+                }
+            }
+
+            // 手指 4、5 (正向映射：手套 0 -> 馬達 active_min, 手套 4095 -> 馬達 active_max)
+            for (uint8_t id = 4; id <= 5; ++id) {
+                if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
+                    int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_min, cfg.active_max);
+                    myHand.setFingerPosition(id, target);
+                }
+            }
+        }
+    }
+
+    close(server_fd);
     return 0;
 }
-
-
-
-// std::vector<FingerConfig> hand_config = {
-//     {1, 0, 2100}, // 假設 ID 1 是大拇指 (行程較短)
-//     {2, 0, 1800}, // 假設 ID 2 是食指
-//     {3, 0, 1600}, // 假設 ID 3 是中指 (行程最長)
-//     {4, 300, 2000}, // 假設 ID 4 是無名指
-//     {5, 400, 2000}  // 假設 ID 5 是小拇指 (行程較短)
-// };
-
-// std::cout << "\n--- 測試 2: 單獨控制 (比出 OK 的手勢) ---" << std::endl;
-//     // 拇指與食指閉合 (OK 圓圈)
-//     myHand.setFingerPosition(1, 2048); 
-//     myHand.setFingerPosition(2, 3000);
-    
-//     // 中、無名、小指張開
-//     myHand.setFingerPosition(3, 1000);
-//     myHand.setFingerPosition(4, 1000);
-//     myHand.setFingerPosition(5, 1200);
