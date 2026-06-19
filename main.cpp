@@ -108,6 +108,27 @@ int main() {
                     myHand.setFingerPosition(id, target);
                 }
             }
+
+            // if (myHand.getFingerConfig(1, cfg) && cfg.is_ready) {
+            //     int32_t target = mapVal(receivedData.fingers[1 - 1], 0, 4095, cfg.active_min, cfg.active_max);
+            //     myHand.setFingerPosition(1, target);
+            // }  
+            // if (myHand.getFingerConfig(2, cfg) && cfg.is_ready) {
+            //     int32_t target = mapVal(receivedData.fingers[2 - 1], 0, 4095, cfg.active_min, cfg.active_max);
+            //     myHand.setFingerPosition(2, target);
+            // }  
+            // if (myHand.getFingerConfig(3, cfg) && cfg.is_ready) {
+            //     int32_t target = mapVal(receivedData.fingers[3 - 1], 0, 4095, cfg.active_min, cfg.active_max);
+            //     myHand.setFingerPosition(3, target);
+            // }              
+            // if (myHand.getFingerConfig(4, cfg) && cfg.is_ready) {
+            //     int32_t target = mapVal(receivedData.fingers[4 - 1], 0, 4095, cfg.active_min, cfg.active_max);
+            //     myHand.setFingerPosition(4, target);
+            // }               
+            // if (myHand.getFingerConfig(5, cfg) && cfg.is_ready) {
+            //     int32_t target = mapVal(receivedData.fingers[5 - 1], 1300, 4095, cfg.active_min, cfg.active_max);
+            //     myHand.setFingerPosition(5, target);
+            // }     
         } else {
             // 如果沒收到封包，微小休眠 1 毫秒避免 CPU 100% 滿載
             usleep(1000); 
