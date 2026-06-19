@@ -73,20 +73,27 @@ int main() {
     FingerConfig cfg; // 用來暫存取出的手指設定
 
     // ===== 4. 即時控制主迴圈 =====
-    while (true) {
-        ssize_t len = recvfrom(server_fd, &receivedData, sizeof(receivedData), 0, nullptr, nullptr);
-        
-        if (len == sizeof(struct_message)) {
-            // 列印收到的原始數據 debug
-            std::cout << "\r[收到數據] ID1: " << receivedData.fingers[0]
-                      << " | ID2: " << receivedData.fingers[1]
-                      << " | ID3: " << receivedData.fingers[2]
-                      << " | ID4: " << receivedData.fingers[3]
-                      << " | ID5: " << receivedData.fingers[4] << "    " << std::flush;
+    struct_message temp_data;
+    bool has_new_data = false;
 
-            // 👉 更新：依照各手指的正反向，動態帶入 active_min 與 active_max
-            
-            // 手指 1、2、3 (反向映射：手套 0 -> 馬達 active_max, 手套 4095 -> 馬達 active_min)
+    while (true) {
+        has_new_data = false;
+
+        // 核心修改：使用 MSG_DONTWAIT 不斷抽乾(Drain)緩衝區
+        // 直到抽不到東西 (回傳 -1)，此時 receivedData 裡存的就是「最新」的封包
+        while (true) {
+            ssize_t len = recvfrom(server_fd, &temp_data, sizeof(temp_data), MSG_DONTWAIT, nullptr, nullptr);
+            if (len == sizeof(struct_message)) {
+                receivedData = temp_data;
+                has_new_data = true;
+            } else {
+                break; // 緩衝區已清空，跳出內部迴圈
+            }
+        }
+
+        // 只有當我們真正拿到最新數據時，才去驅動馬達
+        if (has_new_data) {
+            // 手指 1、2、3 (反向映射)
             for (uint8_t id = 1; id <= 3; ++id) {
                 if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
                     int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_max, cfg.active_min);
@@ -94,15 +101,50 @@ int main() {
                 }
             }
 
-            // 手指 4、5 (正向映射：手套 0 -> 馬達 active_min, 手套 4095 -> 馬達 active_max)
+            // 手指 4、5 (正向映射)
             for (uint8_t id = 4; id <= 5; ++id) {
                 if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
                     int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_min, cfg.active_max);
                     myHand.setFingerPosition(id, target);
                 }
             }
+        } else {
+            // 如果沒收到封包，微小休眠 1 毫秒避免 CPU 100% 滿載
+            usleep(1000); 
         }
     }
+    
+    // ===== 4. 即時控制主迴圈 =====
+    // while (true) {
+    //     ssize_t len = recvfrom(server_fd, &receivedData, sizeof(receivedData), 0, nullptr, nullptr);
+        
+    //     if (len == sizeof(struct_message)) {
+    //         // 列印收到的原始數據 debug
+    //         std::cout << "\r[收到數據] ID1: " << receivedData.fingers[0]
+    //                   << " | ID2: " << receivedData.fingers[1]
+    //                   << " | ID3: " << receivedData.fingers[2]
+    //                   << " | ID4: " << receivedData.fingers[3]
+    //                   << " | ID5: " << receivedData.fingers[4] << "    " << std::flush;
+
+    //         // 👉 更新：依照各手指的正反向，動態帶入 active_min 與 active_max
+            
+    //         // 手指 1、2、3 (反向映射：手套 0 -> 馬達 active_max, 手套 4095 -> 馬達 active_min)
+    //         for (uint8_t id = 1; id <= 3; ++id) {
+    //             if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
+    //                 int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_max, cfg.active_min);
+    //                 myHand.setFingerPosition(id, target);
+    //             }
+    //         }
+
+    //         // 手指 4、5 (正向映射：手套 0 -> 馬達 active_min, 手套 4095 -> 馬達 active_max)
+    //         for (uint8_t id = 4; id <= 5; ++id) {
+    //             if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
+    //                 int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_min, cfg.active_max);
+    //                 myHand.setFingerPosition(id, target);
+    //             }
+    //         }
+    //     }
+    // }
 
     close(server_fd);
     return 0;
