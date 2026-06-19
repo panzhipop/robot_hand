@@ -94,41 +94,41 @@ int main() {
         // 只有當我們真正拿到最新數據時，才去驅動馬達
         if (has_new_data) {
             // 手指 1、2、3 (反向映射)
-            for (uint8_t id = 1; id <= 3; ++id) {
-                if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
-                    int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_max, cfg.active_min);
-                    myHand.setFingerPosition(id, target);
-                }
-            }
+            // for (uint8_t id = 1; id <= 3; ++id) {
+            //     if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
+            //         int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_max, cfg.active_min);
+            //         myHand.setFingerPosition(id, target);
+            //     }
+            // }
 
-            // 手指 4、5 (正向映射)
-            for (uint8_t id = 4; id <= 5; ++id) {
-                if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
-                    int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_min, cfg.active_max);
-                    myHand.setFingerPosition(id, target);
-                }
-            }
+            // // 手指 4、5 (正向映射)
+            // for (uint8_t id = 4; id <= 5; ++id) {
+            //     if (myHand.getFingerConfig(id, cfg) && cfg.is_ready) {
+            //         int32_t target = mapVal(receivedData.fingers[id - 1], 0, 4095, cfg.active_min, cfg.active_max);
+            //         myHand.setFingerPosition(id, target);
+            //     }
+            // }
 
-            // if (myHand.getFingerConfig(1, cfg) && cfg.is_ready) {
-            //     int32_t target = mapVal(receivedData.fingers[1 - 1], 0, 4095, cfg.active_min, cfg.active_max);
-            //     myHand.setFingerPosition(1, target);
-            // }  
-            // if (myHand.getFingerConfig(2, cfg) && cfg.is_ready) {
-            //     int32_t target = mapVal(receivedData.fingers[2 - 1], 0, 4095, cfg.active_min, cfg.active_max);
-            //     myHand.setFingerPosition(2, target);
-            // }  
-            // if (myHand.getFingerConfig(3, cfg) && cfg.is_ready) {
-            //     int32_t target = mapVal(receivedData.fingers[3 - 1], 0, 4095, cfg.active_min, cfg.active_max);
-            //     myHand.setFingerPosition(3, target);
-            // }              
-            // if (myHand.getFingerConfig(4, cfg) && cfg.is_ready) {
-            //     int32_t target = mapVal(receivedData.fingers[4 - 1], 0, 4095, cfg.active_min, cfg.active_max);
-            //     myHand.setFingerPosition(4, target);
-            // }               
-            // if (myHand.getFingerConfig(5, cfg) && cfg.is_ready) {
-            //     int32_t target = mapVal(receivedData.fingers[5 - 1], 1300, 4095, cfg.active_min, cfg.active_max);
-            //     myHand.setFingerPosition(5, target);
-            // }     
+            if (myHand.getFingerConfig(1, cfg) && cfg.is_ready) {
+                int32_t target = mapVal(receivedData.fingers[1 - 1], 0, 4095, cfg.active_min, cfg.active_max);
+                myHand.setFingerPosition(1, target);
+            }  
+            if (myHand.getFingerConfig(2, cfg) && cfg.is_ready) {
+                int32_t target = mapVal(receivedData.fingers[2 - 1], 2833, 4095, cfg.active_min, cfg.active_max);
+                myHand.setFingerPosition(2, target);
+            }  
+            if (myHand.getFingerConfig(3, cfg) && cfg.is_ready) {
+                int32_t target = mapVal(receivedData.fingers[3 - 1], 0, 3000, cfg.active_min, cfg.active_max);
+                myHand.setFingerPosition(3, target);
+            }              
+            if (myHand.getFingerConfig(4, cfg) && cfg.is_ready) {
+                int32_t target = mapVal(receivedData.fingers[4 - 1], 0, 2783, cfg.active_min, cfg.active_max);
+                myHand.setFingerPosition(4, target);
+            }               
+            if (myHand.getFingerConfig(5, cfg) && cfg.is_ready) {
+                int32_t target = mapVal(receivedData.fingers[5 - 1], 605, 2467, cfg.active_min, cfg.active_max);
+                myHand.setFingerPosition(5, target);
+            }     
         } else {
             // 如果沒收到封包，微小休眠 1 毫秒避免 CPU 100% 滿載
             usleep(1000); 
